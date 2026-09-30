@@ -54,6 +54,8 @@ ZIP 是部署文件的下载备份。如果以后需要另建仓库，建议用�
 | `package.json`、`package-lock.json` | 锁定自动部署工具与检查命令 |
 | `.nvmrc` | Cloudflare 构建使用 Node 24 |
 | `tests/check.mjs` | 检查时区、事件、嵌入资源和导航链接 |
+| `tools/maps.py`、`tools/map_assets.json` | 真实地理投影、离线海岸线／道路／水域和规划路线 |
+| `MAP_DATA_LICENSE.md` | 地图来源与数据许可 |
 | `tools/build_manual.py` | 用 Python 标准库维护行程和生成 HTML；Cloudflare 不需要运行它 |
 | `.gitignore` | 防止本地依赖、临时文件和环境配置被提交 |
 
@@ -78,3 +80,5 @@ Cloudflare 当前 Workers Free 计划的 Worker 调用额度为每日100,000次�
 - [GitHub 连接](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/github-integration/)
 - [构建环境与 Node 版本](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)
 - [Cloudflare Workers 定价](https://developers.cloudflare.com/workers/platform/pricing/)
+
+地图使用 OpenStreetMap 与 Natural Earth 的真实地理数据，所有地点按经纬度投影，底图内嵌、支持离线。罗佛敦自驾路线沿道路绘制；总览航班／邮轮虚线仅连接起终点。手机可以点“放大查看地图”查看细节。地图许可见 MAP_DATA_LICENSE.md。

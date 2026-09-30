@@ -23,10 +23,10 @@ for args in [
  ('osl','奥斯陆机场',60.1939,11.1004,'Oslo Airport Gardermoen'),
  ('boo','博德机场',67.2692,14.3653,'Bodø Airport'),
  ('svj','斯沃尔维尔机场',68.2433,14.6691,'Svolvær Airport Helle'),
- ('nordis','Nordis Hotel Lofoten',68.2352,14.5722,'Nordis Hotel Lofoten Austnesfjordgata 36 Svolvær'),
+ ('nordis','Nordis Hotel Lofoten',68.236724,14.569446,'Nordis Hotel Lofoten Austnesfjordgata 36 Svolvær'),
  ('svol','斯沃尔维尔市中心',68.2323,14.5640,'Svolvær sentrum Norway'),
- ('devilstart','恶魔之门徒步起点',68.2438,14.5645,'Parkering for Sherpatrappa Djevelporten Svolvær'),
- ('devil','Djevelporten 恶魔之门',68.2519,14.5740,'Djevelporten Svolvær'),
+ ('devilstart','恶魔之门阶梯入口',68.2449552,14.5795923,'Djeveltrappa Svolvær Norway'),
+ ('devil','Djevelporten 恶魔之门',68.250838,14.5979795,'Djevelporten Svolvær'),
  ('kiwi','KIWI Svolvær',68.2310,14.5620,'KIWI Svolvær Norway'),
  ('rema','REMA 1000 Svolvær',68.2305,14.5625,'REMA 1000 Svolvær'),
  ('lofotenshop','Lofotenshop',68.2328,14.5661,'Lofotenshop Svolvær'),
@@ -42,7 +42,7 @@ for args in [
  ('mix','MIX Joh Malnes Handleri',68.154,14.205,'MIX Joh Malnes Handleri Henningsvær'),
  ('eggum','Eggum',68.3072,13.6727,'Eggum Norway'),
  ('unstad','Unstad Beach',68.2637,13.5718,'Unstad Beach Norway'),
- ('hauk','Haukland 海滩',68.1990,13.5279,'Hauklandstranda Parking Norway'),
+ ('hauk','Haukland 海滩',68.1993077,13.5325123,'Hauklandstranda Parking Norway'),
  ('skag','Skagsanden 海滩',68.1046,13.2853,'Skagsanden beach Norway'),
  ('ramberg','Ramberg 海滩',68.0986,13.2388,'Ramberg Beach Norway'),
  ('fredvang','Fredvang 桥群',68.0869,13.1605,'Fredvangskrysset Norway'),
@@ -264,23 +264,26 @@ for d in DAYS:
 
 def zone(tz):return {'Asia/Shanghai':'CST · UTC+8','Europe/Amsterdam':'CEST · UTC+2','Europe/Oslo':'CEST · UTC+2','Europe/Warsaw':'CEST · UTC+2','Europe/London':'BST · UTC+1'}[tz]
 def svg_route(keys,color,ident,route_layers=None):
-    pts=[PLACES[k] for k in keys];w,h=680,310
-    latmid=sum(p['lat'] for p in pts)/len(pts)
-    coords=[(p['lng']*math.cos(math.radians(latmid)),-p['lat']) for p in pts]
-    mnx=min(x for x,y in coords);mxx=max(x for x,y in coords);mny=min(y for x,y in coords);mxy=max(y for x,y in coords)
-    dx=max(mxx-mnx,.01);dy=max(mxy-mny,.01);scale=min(530/dx,205/dy)
-    out=[]
-    for x,y in coords:out.append((w/2+(x-(mnx+mxx)/2)*scale,h/2+(y-(mny+mxy)/2)*scale))
-    projected=dict(zip(keys,out))
-    content=f'<svg class="route-svg" viewBox="0 0 {w} {h}" role="img" aria-label="{E(ident)}的地点与路线示意"><defs><pattern id="grid{ident}" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M 28 0 H 0 V 28" fill="none" stroke="currentColor" stroke-opacity=".07"/></pattern></defs><rect width="680" height="310" rx="18" fill="var(--sea)"/><rect width="680" height="310" rx="18" fill="url(#grid{ident})"/><path d="M0 244 Q98 174 184 223 T370 205 T540 235 T680 166 V310 H0Z" fill="var(--land)" opacity=".65"/>'
-    for i,(route_keys,route_color) in enumerate(route_layers or [(keys,color)]):
-        lines=' '.join(f'{projected[k][0]+i*5:.1f},{projected[k][1]+i*3:.1f}' for k in route_keys)
-        content+=f'<polyline points="{lines}" fill="none" stroke="{route_color}" stroke-width="{5 if i==0 else 3}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7"/>'
-    for i,(key,(x,y)) in enumerate(zip(keys,out)):
-        content+=f'<a href="{E(nav(key))}" target="_blank" aria-label="导航至{E(PLACES[key]["name"])}"><title>{E(PLACES[key]["name"])}</title><circle cx="{x:.1f}" cy="{y:.1f}" r="15" fill="{color}" stroke="var(--paper)" stroke-width="3"/><text x="{x:.1f}" y="{y+5:.1f}" text-anchor="middle" fill="white" font-size="13" font-weight="700">{i+1}</text></a>'
-    content+='<text x="22" y="29" fill="currentColor" font-size="13" opacity=".6">N ↑ · 地点路线示意</text></svg>'
-    content+='<div class="map-key">'+''.join(f'<span><i style="background:{color}">{i+1}</i>{link(k)}</span>' for i,k in enumerate(keys))+'</div>'
-    return content
+    from maps import ASSETS,map_svg,line_path,route_keys
+    map_id={'2':'amsterdam','3':'svolvaer','4':'lofoten','5':'lofoten','6':'tromso','7':'tromso','8':'london','9':'london','10':'china','11':'pudong','lofoten':'lofoten'}[ident]
+    shown=[k for k in keys if not (ident=='9' and k=='lhr')]
+    routes=[]
+    if ident in ['4','5']:
+        routes=[(ASSETS[map_id]['layers']['routes'][ident],color,'road')]
+    elif ident=='lofoten':
+        routes=[(ASSETS[map_id]['layers']['routes']['4'],COLORS[2],'road'),(ASSETS[map_id]['layers']['routes']['5'],COLORS[3],'road')]
+    elif ident=='10':
+        routes=[(line_path(map_id,[(PLACES[k]['lng'],PLACES[k]['lat']) for k in shown]),color,'connection')]
+    s=map_svg(map_id,shown,PLACES,nav,color,'day-'+ident,routes=routes,title='真实地理底图 · '+('罗佛敦自驾' if ident=='lofoten' else '10月'+ident+'日地点位置'))
+    s+=route_keys(shown,PLACES,link,color)
+    if ident in ['4','5','lofoten']:
+        s+='<p class="micro">彩色实线沿道路绘制；地图序号对应停靠点。路线为规划参考，实际通行以现场与Google导航为准。</p>'
+    elif ident=='10':
+        s+='<p class="micro">虚线仅连接出发与到达机场，不代表实际飞行航迹。</p>'
+    else:
+        s+='<p class="micro">序号对应地点与访问顺序；道路、海岸线和河道按真实地理数据绘制。点击下方导航查看实际步行／交通路线。</p>'
+    if ident=='9':s+='<p class="micro">市区游览后前往西侧的'+link('lhr')+'；机场接驳另开导航，以免市区地图缩得过小。</p>'
+    return s
 
 def route_details(d):
     btns=''.join(f'<a class="button {"primary" if i==0 else "secondary"}" href="{E(route_url(keys,mode))}" target="_blank" rel="noopener noreferrer">{E(label)}导航 ↗</a>' for i,(label,mode,keys) in enumerate(d['routes']))
@@ -299,31 +302,21 @@ def timeline(d):
     return f'<article class="day-card" id="day-{d["n"]}" style="--day:{d["color"]}"><div class="day-heading"><span class="day-number">10.{d["n"]:02}<small>{weekday}</small></span><div><p class="eyebrow">{E(d["region"])}</p><h3>{E(d["title"])}</h3></div></div><div class="day-meta"><span>{zone(d["tz"])}</span><span>夜宿 · {E(d["sleep"])}</span></div>{route_details(d)}<p class="day-note">{E(d["note"])}</p><ol class="timeline">{rows}</ol></article>'
 
 def overview():
-    # Hand-drawn schematic panels keep both countries and the Lofoten detail legible on a phone.
-    pts={'ams':(125,228),'osl':(240,172),'boo':(328,117),'svj':(355,85),'tromso':(436,51),'gdn':(270,274),'ltn':(62,292),'lhr':(34,324),'tao':(456,333),'pvg2':(460,365)}
-    s='<svg class="overview-svg" viewBox="0 0 530 408" role="img" aria-label="10月2日至11日，上海、阿姆斯特丹、罗佛敦、特罗姆瑟、伦敦与回程路线"><rect width="530" height="408" rx="18" fill="var(--sea)"/><path d="M195 294 C165 238 225 216 217 177 S262 135 278 95 L339 22 L379 11 L345 64 Q324 115 295 147 L289 206 L309 238 L352 296 Z" fill="var(--land)" stroke="var(--map-stroke)" stroke-width="1.5"/><path d="M20 290 Q12 267 35 253 L52 266 L59 294 L80 315 L54 337 L25 327 Z M5 305 L16 294 L21 326 L7 333Z" fill="var(--land)" stroke="var(--map-stroke)"/><path d="M96 219 Q139 202 175 230 L220 250 L242 290 L204 365 L123 377 L98 327 Z" fill="var(--land)" stroke="var(--map-stroke)"/><text x="365" y="186" fill="currentColor" opacity=".45" font-size="19" transform="rotate(-25 365 186)">NORWAY</text><text x="21" y="235" fill="currentColor" opacity=".45" font-size="15">UK</text><text x="27" y="29" fill="currentColor" font-size="12">N ↑ · 行程示意，非实路比例</text>'
-    s+=f'<defs><linearGradient id="ship-days"><stop offset="0" stop-color="{COLORS[3]}"/><stop offset="50%" stop-color="{COLORS[3]}"/><stop offset="51%" stop-color="{COLORS[4]}"/><stop offset="100%" stop-color="{COLORS[4]}"/></linearGradient></defs>'
-    routes=[('pvg2','ams',COLORS[0],'10/2 去程'),('ams','osl',COLORS[0],'10/2'),('osl','boo',COLORS[1],'10/3'),('boo','svj',COLORS[1],''),('svj','tromso',COLORS[3],'10/5–6 船'),('tromso','gdn',COLORS[5],'10/7'),('gdn','ltn',COLORS[6],'10/8'),('lhr','tao',COLORS[7],'10/9–10'),('tao','pvg2',COLORS[8],'10/10–11')]
-    for a,b,c,label in routes:
-        x,y=pts[a];xx,yy=pts[b];mx=(x+xx)/2+15;my=(y+yy)/2-14
-        paint='url(#ship-days)' if a=='svj' and b=='tromso' else c
-        s+=f'<path d="M{x} {y} Q{mx} {my} {xx} {yy}" fill="none" stroke="{paint}" stroke-width="2.5" stroke-dasharray="5 4"/>'
-        if label:s+=f'<text x="{mx}" y="{my-3}" fill="{c}" font-size="10">{label}</text>'
-    for key,(x,y) in pts.items():
-        name={'ams':'阿姆斯特丹','osl':'奥斯陆','boo':'博德','svj':'斯沃尔维尔','tromso':'特罗姆瑟','gdn':'格但斯克','ltn':'卢顿','lhr':'希思罗','tao':'青岛','pvg2':'上海'}[key]
-        labelx=x+8 if x<430 else x-8;anchor='start' if x<430 else 'end'
-        s+=f'<a href="{E(nav(key))}" target="_blank" aria-label="导航至{E(name)}"><circle cx="{x}" cy="{y}" r="4.5" fill="var(--ink)"/><text x="{labelx}" y="{y-6}" fill="currentColor" text-anchor="{anchor}" font-size="12" font-weight="600">{name}</text></a>'
-    for x,y,c,text_value,anchor in [(245,190,COLORS[0],'10/2 机场过夜·待定','start'),(364,103,COLORS[1],'10/3 Nordis·已订','start'),(444,71,COLORS[4],'10/6 市中心·待订','end'),(281,290,COLORS[5],'10/7 机场过夜·待定','start'),(25,350,COLORS[6],'10/8 伦敦·待订','start')]:
-        s+=f'<text x="{x}" y="{y}" fill="{c}" text-anchor="{anchor}" font-size="9">{text_value}</text>'
-    s+='<path d="M80 61 l18 -24 21 25 19 -17 24 31" fill="none" stroke="var(--map-stroke)" stroke-width="2"/><path d="M328 313 l8 -17 8 17 m-8 -17 v27" stroke="var(--map-stroke)" fill="none"/><text x="360" y="389" fill="currentColor" font-size="11" opacity=".6">↘ 中国回程示意</text></svg>'
-    # Lofoten inset uses geographic point positions, day colors and a northbound return.
-    inset=svg_route(['svol','henn','hauk','ramberg','hamn','reine','a'],COLORS[2],'lofoten',[
-        (['svol','henn','hauk','ramberg','hamn','reine'],COLORS[2]),
-        (['reine','a','ramberg','svol'],COLORS[3])])
-    inset=inset.replace('</svg>',f'<text x="430" y="270" fill="{COLORS[3]}" font-size="13">10/5 向北返程 ↗</text><text x="22" y="291" fill="{COLORS[2]}" font-size="13">10/4 雷纳／哈姆诺伊·待订</text></svg>')
+    from maps import ASSETS,map_svg,line_path
+    p=lambda k:(PLACES[k]['lng'],PLACES[k]['lat'])
+    world_keys=['pvg1','ams','lhr','tao']
+    world_labels={'pvg1':('上海 · 10/2出发／10/11抵沪',-12,32),'ams':('阿姆斯特丹',12,-13),'lhr':('伦敦 · 10/9回国',12,28),'tao':('青岛 · 10/10转机',-12,-16)}
+    world_routes=[(line_path('world',[p('pvg1'),p('ams')]),COLORS[0],'connection'),(line_path('world',[p('lhr'),p('tao')]),COLORS[7],'connection'),(line_path('world',[p('tao'),p('pvg1')]),COLORS[8],'connection')]
+    world=map_svg('world',world_keys,PLACES,nav,COLORS[0],'overview-world',routes=world_routes,labels=world_labels,title='中国与欧洲的真实地理位置 · 往返航班')
+    europe_keys=['ams','osl','boo','svj','tromso','gdn','ltn','lhr']
+    labels={'ams':('阿姆斯特丹 · 10/2',18,-8),'osl':('奥斯陆机场 · 10/2–3',16,5),'boo':('博德 · 10/3',20,22),'svj':('斯沃尔维尔 · 10/3–5',-16,-17),'tromso':('特罗姆瑟 · 10/6–7',18,-10),'gdn':('格但斯克 · 10/7–8',12,15),'ltn':('卢顿 · 10/8',14,-19),'lhr':('希思罗 · 10/9',14,26)}
+    trip=[('ams','osl',0),('osl','boo',1),('boo','svj',1),('svj','tromso',3),('tromso','gdn',5),('gdn','ltn',6)]
+    routes=[(line_path('europe',[p(a),p(b)]),COLORS[c],'connection') for a,b,c in trip]
+    europe=map_svg('europe',europe_keys,PLACES,nav,COLORS[0],'overview-europe',routes=routes,labels=labels,title='欧洲行程总览 · 机场与港口的真实地理位置')
+    inset=svg_route(['svol','henn','eggum','unstad','hauk','ramberg','hamn','reine','a'],COLORS[2],'lofoten')
     sleeps=''.join(f'<li><span style="color:{d["color"]}">10/{d["n"]}</span><b>{E(d["sleep"])}</b></li>' for d in DAYS if d['n']<11)
     legend=''.join(f'<a href="#day-{d["n"]}"><i style="background:{d["color"]}"></i>10/{d["n"]}</a>' for d in DAYS)
-    return f'<div class="overview-grid"><div>{s}<div class="day-legend">{legend}</div></div><div class="lofoten-inset"><p class="eyebrow">LOFOTEN · 罗佛敦自驾</p>{inset}<div class="inset-legend"><span><i style="background:{COLORS[2]}"></i>10/4 向南</span><span><i style="background:{COLORS[3]}"></i>10/5 返程登船</span></div></div></div><div class="nights"><h3>每晚落脚点</h3><ul>{sleeps}</ul></div>'
+    return '<div class="world-map"><p class="eyebrow">往返航班 · 中国与欧洲</p>'+world+'</div><div class="overview-grid"><div><p class="eyebrow">欧洲行程 · 真实地理位置</p>'+europe+'<p class="micro">虚线连接航班／邮轮起终点，不代表实际航迹或邮轮沿岸航线。</p><div class="day-legend">'+legend+'</div></div><div class="lofoten-inset"><p class="eyebrow">罗佛敦 · 真实海岸线与自驾道路</p>'+inset+f'<div class="inset-legend"><span><i style="background:{COLORS[2]}"></i>10/4 南下与支线</span><span><i style="background:{COLORS[3]}"></i>10/5 Å村与北返</span></div></div></div><div class="nights"><h3>每晚落脚点</h3><ul>'+sleeps+'</ul></div>'
 
 FLIGHTS=[
  ('10/2','上海 → 阿姆斯特丹','pvg1','ams','09:00 CST · UTC+8','14:55 CEST · UTC+2','MU209 · 浦东T1出发'),
@@ -418,6 +411,7 @@ function navTo(p){return 'https://www.google.com/maps/dir/?'+new URLSearchParams
 function currentLocation(now){let p={place:'pvg1',tz:'Asia/Shanghai'};for(const a of locationAnchors){if(a.ms>now)break;p=a;}return {...p,...places[p.place]};}
 function solarDay(now,p){const t=new Date(now),start=Date.UTC(t.getUTCFullYear(),0,1),day=Math.floor((now-start)/86400000)+1,h=t.getUTCHours()+t.getUTCMinutes()/60;const g=2*Math.PI/365*(day-1+(h-12)/24);const dec=.006918-.399912*Math.cos(g)+.070257*Math.sin(g)-.006758*Math.cos(2*g)+.000907*Math.sin(2*g)-.002697*Math.cos(3*g)+.00148*Math.sin(3*g);const eq=229.18*(.000075+.001868*Math.cos(g)-.032077*Math.sin(g)-.014615*Math.cos(2*g)-.040849*Math.sin(2*g));const solar=((h*60+eq+4*p.lng)%1440+1440)%1440;const angle=(solar/4-180)*Math.PI/180,lat=p.lat*Math.PI/180;return Math.sin(lat)*Math.sin(dec)+Math.cos(lat)*Math.cos(dec)*Math.cos(angle)>Math.cos(90.833*Math.PI/180);}
 function tick(){const now=Date.now();const next=events.find(e=>e.ms>now);const loc=currentLocation(now);if(next){const id=next.at+next.title;if(id!==lastEvent){elements.title.textContent=next.title;elements.at.textContent=new Intl.DateTimeFormat('zh-CN',{timeZone:next.tz,month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(next.ms))+' · '+tzLabels[next.tz];elements.note.textContent=next.note;elements.link.href='#day-'+next.day;elements.link.textContent='查看当天安排 ↓';lastEvent=id;}let sec=Math.max(0,Math.ceil((next.ms-now)/1000));const values=[Math.floor(sec/86400),Math.floor(sec%86400/3600),Math.floor(sec%3600/60),sec%60];values.forEach((v,i)=>units[i].textContent=String(v).padStart(2,'0'));}else{elements.title.textContent='已抵达上海 · 好好休息';elements.at.textContent='10月11日 00:10 · 中国 CST · UTC+8';elements.note.textContent='旅行手册可继续查看，所有时间保留当地时区。';elements.link.href='#day-11';elements.link.textContent='查看抵沪安排 ↓';units.forEach(x=>x.textContent='00');elements.focus.classList.add('completed');}const minute=Math.floor(now/60000);if(minute!==lastMinute){document.body.dataset.theme=solarDay(now,loc)?'light':'dark';elements.clock.textContent='行程所在地此刻 '+new Intl.DateTimeFormat('zh-CN',{timeZone:loc.tz,month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(now))+' · '+tzLabels[loc.tz];lastMinute=minute;}}
+const mapDialog=document.createElement('dialog');mapDialog.className='map-dialog';mapDialog.innerHTML='<div class="map-dialog-head"><span>放大地图 · 左右滑动查看</span><button type="button">关闭 ×</button></div><div class="map-dialog-scroll"></div><p class="map-attribution"></p>';document.body.appendChild(mapDialog);mapDialog.querySelector('button').addEventListener('click',()=>mapDialog.close());document.addEventListener('click',event=>{const button=event.target.closest('[data-map-expand]');if(!button)return;const original=document.getElementById(button.dataset.mapExpand),clone=original.cloneNode(true);clone.removeAttribute('id');const clip=clone.querySelector('clipPath'),old=clip.id;clip.id=old+'-zoom';clone.querySelector('[clip-path]').setAttribute('clip-path','url(#'+clip.id+')');mapDialog.querySelector('.map-dialog-scroll').replaceChildren(clone);mapDialog.querySelector('.map-attribution').innerHTML=button.nextElementSibling.innerHTML;mapDialog.showModal();});
 tick();setInterval(tick,1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){lastMinute=-1;tick();}});
 const status=document.getElementById('connection-status');let cachedReady=false;function networkStatus(){status.textContent=location.protocol==='file:'?'离线文件':!navigator.onLine?'离线阅读':cachedReady?'可离线阅读':'在线阅读';}window.addEventListener('online',networkStatus);window.addEventListener('offline',networkStatus);networkStatus();
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(()=>navigator.serviceWorker.ready).then(()=>{cachedReady=true;networkStatus();}).catch(()=>{status.textContent='可下载离线版';});}
@@ -430,6 +424,10 @@ sections=[('overview','01','行程总览','每天一色 · 每晚一站','<div c
 content=''.join(f'<section class="section" id="{id}"><div class="section-title"><span class="index">{num}</span><h2>{title}</h2><span class="aside">{aside}</span></div>{body}</section>' for id,num,title,aside,body in sections)
 favicon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#276761"/><path d="M9 46L25 17L38 39L46 27L57 46Z" fill="#fbf8ef"/><path d="M22 23L25 17L30 26Z" fill="#bb8e27"/></svg>'
 from urllib.parse import quote
-doc='<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#276761"><meta name="description" content="2026年10月2日至11日，2人挪威与英国旅行手册：已订航班邮轮、每日路线、Google导航、离线阅读与时区倒计时。"><meta name="robots" content="noindex,nofollow"><title>挪威 & 英国 · 旅行手册 10.2–10.11</title><link rel="icon" href="data:image/svg+xml,'+quote(favicon)+'"><style>'+CSS+'</style></head><body><header><div><h1>挪威 <span style="color:var(--muted);font-weight:400">&</span> 英国</h1><div class="header-meta">TRAVEL NOTES · 2026.10.02—10.11 · 2人</div></div><div class="header-actions"><span class="status" id="connection-status">离线友好</span><button class="download" id="download" type="button">下载离线版 ↓</button></div></header><main class="shell">'+focus+'<noscript><p class="nojs">行程正文与地图可直接阅读；开启JavaScript后可使用倒计时和自动日夜配色。</p></noscript><nav class="quick-nav" aria-label="手册目录"><a href="#overview">总览地图</a><a href="#bookings">已确认预订</a><a href="#itinerary">逐日行程</a><a href="#todos">待办清单</a><a href="#tips">实用贴士</a></nav>'+content+'<footer class="footer"><span>上海 → 荷兰短停 → 罗佛敦 → 特罗姆瑟 → 伦敦 → 上海</span><span>时间均带当地时区 · 点地点打开Google导航</span></footer></main><script id="trip-data" type="application/json">'+json.dumps(DATA,ensure_ascii=False,separators=(',',':')).replace('</','<\\/')+'</script><script>'+JS+'</script></body></html>'
+from maps import definitions as map_definitions
+CSS+='''
+:root{--geo-water:#dcecf4;--geo-land:#f5f5ed;--geo-coast:#8aa7b6;--geo-roads:#d0c8ba;--geo-major:#bdb39a}body[data-theme=dark]{--geo-water:#18384a;--geo-land:#283b38;--geo-coast:#789b9d;--geo-roads:#617268;--geo-major:#a8a08a}.geographic-map{border:1px solid var(--line);border-radius:12px}.geo-label{paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round}.map-attribution{font-size:10px;line-height:1.5;color:var(--muted);margin:7px 0 10px}.world-map{border-bottom:1px solid var(--line);padding-bottom:15px;margin-bottom:20px}.world-map .route-svg{max-height:350px}.overview-grid{align-items:start}.overview-grid .route-svg{max-height:none}.map-content .route-svg{min-height:180px}.map-expand{border:1px solid var(--line);background:var(--paper);color:var(--teal);border-radius:7px;padding:7px 10px;font-size:11px;margin-top:8px}.map-dialog{width:96vw;max-width:1200px;max-height:94vh;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:14px;padding:14px}.map-dialog::backdrop{background:#0009}.map-dialog-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:12px}.map-dialog-head button{border:1px solid var(--line);border-radius:6px;background:var(--soft);color:var(--ink);padding:7px 12px}.map-dialog-scroll{overflow:auto;max-height:75vh}.map-dialog .route-svg{width:1100px;max-width:none;height:auto}
+'''
+doc='<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#276761"><meta name="description" content="2026年10月2日至11日，2人挪威与英国旅行手册：已订航班邮轮、每日路线、Google导航、离线阅读与时区倒计时。"><meta name="robots" content="noindex,nofollow"><title>挪威 & 英国 · 旅行手册 10.2–10.11</title><link rel="icon" href="data:image/svg+xml,'+quote(favicon)+'"><style>'+CSS+'</style></head><body>'+map_definitions()+'<header><div><h1>挪威 <span style="color:var(--muted);font-weight:400">&</span> 英国</h1><div class="header-meta">TRAVEL NOTES · 2026.10.02—10.11 · 2人</div></div><div class="header-actions"><span class="status" id="connection-status">离线友好</span><button class="download" id="download" type="button">下载离线版 ↓</button></div></header><main class="shell">'+focus+'<noscript><p class="nojs">行程正文与地图可直接阅读；开启JavaScript后可使用倒计时和自动日夜配色。</p></noscript><nav class="quick-nav" aria-label="手册目录"><a href="#overview">总览地图</a><a href="#bookings">已确认预订</a><a href="#itinerary">逐日行程</a><a href="#todos">待办清单</a><a href="#tips">实用贴士</a></nav>'+content+'<footer class="footer"><span>上海 → 荷兰短停 → 罗佛敦 → 特罗姆瑟 → 伦敦 → 上海</span><span>时间均带当地时区 · 点地点打开Google导航</span></footer></main><script id="trip-data" type="application/json">'+json.dumps(DATA,ensure_ascii=False,separators=(',',':')).replace('</','<\\/')+'</script><script>'+JS+'</script></body></html>'
 (ROOT/'public/index.html').write_text(doc,encoding='utf-8')
 print(f'Built {len(DAYS)} days, {sum(len(d["rows"]) for d in DAYS)} timeline rows, {len(EVENTS)} timezone-qualified events, {len(PLACES)} clickable places. HTML {len(doc.encode()):,} bytes.')
