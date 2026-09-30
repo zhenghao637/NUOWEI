@@ -1,0 +1,15 @@
+{
+  "name": "norway-uk-travel-2026",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22.0.0"},
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "node --check worker.js && node tests/check.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.144.0"
+  }
+}
